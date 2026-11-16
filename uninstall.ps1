@@ -4,7 +4,11 @@ $ProgressPreference = 'SilentlyContinue'
 $Dest  = Join-Path $env:LOCALAPPDATA 'MouseAssistant'
 $Files = @(
     'MouseAssistant.exe',
-    'client.env.example'
+    'MouseAssistantServer.exe',
+    'client.env.example',
+    'client.log',
+    'last-choice-target.json',
+    'last-choice-target.png'
 )
 
 if (-not (Test-Path $Dest)) {
@@ -12,36 +16,60 @@ if (-not (Test-Path $Dest)) {
     return
 }
 
+function Stop-Mouse {
+    foreach ($name in 'MouseAssistant.exe', 'MouseAssistantServer.exe') {
+        cmd /c "taskkill /F /T /IM $name >nul 2>&1"
+    }
+}
+
+function Remove-Locked {
+    param([string]$Path)
+
+    for ($i = 0; $i -lt 20; $i++) {
+        try {
+            Remove-Item $Path -Force
+            return $true
+        }
+        catch {
+            Stop-Mouse
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    return $false
+}
+
 Write-Host 'Останавливаю MouseAssistant...'
-Get-Process MouseAssistant -ErrorAction SilentlyContinue | Stop-Process -Force
+Stop-Mouse
 
 $allOk = $true
 foreach ($name in $Files) {
     $path = Join-Path $Dest $name
     if (-not (Test-Path $path)) { continue }
 
-    try {
-        Remove-Item $path -Force
+    if (Remove-Locked $path) {
         Write-Host "Удалён: $name" -ForegroundColor Green
     }
-    catch {
-        Write-Host "Ошибка удаления $name : $($_.Exception.Message)" -ForegroundColor Red
+    else {
+        Write-Host "Не удалось удалить $name : файл занят другим процессом" -ForegroundColor Red
         $allOk = $false
     }
 }
 
-Get-ChildItem $Dest -Filter '*.download' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+Get-ChildItem $Dest -Filter '*.download' -ErrorAction SilentlyContinue | ForEach-Object {
+    if (Remove-Locked $_.FullName) {
+        Write-Host "Удалён: $($_.Name)" -ForegroundColor Green
+    }
+}
 
 $envFile = Join-Path $Dest 'client.env'
 if (Test-Path $envFile) {
     $answer = Read-Host 'Удалить конфиг client.env (там SERVER_URL и AUTH_TOKEN)? [y/N]'
     if ($answer -match '^(y|д|yes|да)$') {
-        try {
-            Remove-Item $envFile -Force
+        if (Remove-Locked $envFile) {
             Write-Host 'Удалён: client.env' -ForegroundColor Green
         }
-        catch {
-            Write-Host "Ошибка удаления client.env : $($_.Exception.Message)" -ForegroundColor Red
+        else {
+            Write-Host 'Не удалось удалить client.env : файл занят другим процессом' -ForegroundColor Red
             $allOk = $false
         }
     }
@@ -54,6 +82,9 @@ if (Test-Path $Dest) {
     if (-not (Get-ChildItem $Dest -Force)) {
         Remove-Item $Dest -Force
         Write-Host "Папка удалена: $Dest" -ForegroundColor Green
+    }
+    else {
+        Write-Host "В папке остались файлы: $Dest" -ForegroundColor Yellow
     }
 }
 
