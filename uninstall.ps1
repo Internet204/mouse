@@ -63,18 +63,12 @@ Get-ChildItem $Dest -Filter '*.download' -ErrorAction SilentlyContinue | ForEach
 
 $envFile = Join-Path $Dest 'client.env'
 if (Test-Path $envFile) {
-    $answer = Read-Host 'Удалить конфиг client.env (там SERVER_URL и AUTH_TOKEN)? [y/N]'
-    if ($answer -match '^(y|д|yes|да)$') {
-        if (Remove-Locked $envFile) {
-            Write-Host 'Удалён: client.env' -ForegroundColor Green
-        }
-        else {
-            Write-Host 'Не удалось удалить client.env : файл занят другим процессом' -ForegroundColor Red
-            $allOk = $false
-        }
+    if (Remove-Locked $envFile) {
+        Write-Host 'Удалён: client.env' -ForegroundColor Green
     }
     else {
-        Write-Host "Конфиг сохранён: $envFile" -ForegroundColor Yellow
+        Write-Host 'Не удалось удалить client.env : файл занят другим процессом' -ForegroundColor Red
+        $allOk = $false
     }
 }
 
