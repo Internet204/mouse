@@ -6,8 +6,9 @@ Add-Type -AssemblyName System.Net.Http
 $Base  = 'https://raw.githubusercontent.com/Internet204/mouse/main'
 $Dest  = Join-Path $env:LOCALAPPDATA 'MouseAssistant'
 $Files = @{
-    'windows/MouseAssistant.exe'     = 'MouseAssistant.exe'
-    'windows/client.env.example'     = 'client.env.example'
+    'windows/MouseAssistant.exe'        = 'MouseAssistant.exe'
+    'windows/MouseAssistantServer.exe'  = 'MouseAssistantServer.exe'
+    'windows/client.env.example'        = 'client.env.example'
 }
 
 function Download-File {
@@ -68,7 +69,7 @@ foreach ($src in $Files.Keys) {
     try {
         Download-File -Url "$Base/$src" -Path $tmp
 
-        Get-Process MouseAssistant -ErrorAction SilentlyContinue | Stop-Process -Force
+        Get-Process MouseAssistant, MouseAssistantServer -ErrorAction SilentlyContinue | Stop-Process -Force
         Move-Item $tmp $target -Force
         Unblock-File $target
 
