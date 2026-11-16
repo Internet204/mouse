@@ -93,9 +93,7 @@ $envExample = Join-Path $Dest 'client.env.example'
 
 if (-not (Test-Path $envFile)) {
     Copy-Item $envExample $envFile
-    Write-Host "Создан конфиг $envFile. Укажи в нём SERVER_URL и AUTH_TOKEN, затем запусти MouseAssistant.exe." -ForegroundColor Yellow
-    Start-Process notepad.exe -ArgumentList $envFile
+    Write-Host "Создан конфиг $envFile. При необходимости укажи в нём SERVER_URL и AUTH_TOKEN." -ForegroundColor Yellow
 }
-else {
-    Start-Process (Join-Path $Dest 'MouseAssistant.exe')
-}
+
+Start-Process (Join-Path $Dest 'MouseAssistant.exe')
